@@ -54,9 +54,17 @@ $(document).ready(function() {
         
         if (file) {
             fileExtension = file.name.split('.').pop();
+            var fileSizeMB = (file.size / (1024 * 1024)).toFixed(2); // Convert to MB
+            var fileSizeGB = (file.size / (1024 * 1024 * 1024)).toFixed(2); // Convert to GB
+
+            var fileSizeDisplay = fileSizeMB + ' MB';
+            if (file.size >= 1024 * 1024 * 1024) {
+                fileSizeDisplay = fileSizeGB + ' GB';
+            }
+
             $('#fileDetails').show().html(`
                 <p><strong>File Name:</strong> ${file.name}</p>
-                <p><strong>File Size:</strong> ${file.size} bytes</p>
+                <p><strong>File Size:</strong> ${fileSizeDisplay}</p>
                 <p><strong>File Extension:</strong> ${fileExtension}</p>
             `);
             $('#uploadBtn').prop('disabled', false);
@@ -77,9 +85,17 @@ $(document).ready(function() {
             contentType: false,
             processData: false,
             success: function(response) {
+                var fileSizeMB = (response.size / (1024 * 1024)).toFixed(2); // Convert to MB
+                var fileSizeGB = (response.size / (1024 * 1024 * 1024)).toFixed(2); // Convert to GB
+
+                var fileSizeDisplay = fileSizeMB + ' MB';
+                if (response.size >= 1024 * 1024 * 1024) {
+                    fileSizeDisplay = fileSizeGB + ' GB';
+                }
+
                 $('#fileDetails').show().html(`
                     <p><strong>File Name:</strong> ${response.name}</p>
-                    <p><strong>File Size:</strong> ${response.size} bytes</p>
+                    <p><strong>File Size:</strong> ${fileSizeDisplay}</p>
                     <p><strong>File Extension:</strong> ${response.extension}</p>
                 `);
                 $('#encryptBtn').show().data('path', response.path).data('extension', response.extension);
@@ -143,5 +159,6 @@ $(document).ready(function() {
         });
     });
 });
+
 </script>
 @endsection
