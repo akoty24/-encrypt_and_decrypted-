@@ -23,8 +23,8 @@ class DecryptFileRequest extends FormRequest
     {
         return [
             'file_path' => 'required|string',
-            'custom_path' => 'nullable|string',
-            'custom_file_name' => 'required|string',
+            // 'custom_path' => 'nullable|string',
+            // 'custom_file_name' => 'required|string',
             'file_extension' => 'required|string',
                 ];
     }

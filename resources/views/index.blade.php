@@ -12,20 +12,14 @@
                 </div>
             </div>
             <div id="fileDetails" class="alert alert-info" role="alert" style="display: none; background-color: rgba(0, 123, 255, 0.7); color: #ffc107;" ></div>
+
             <div class="text-center">
                 <button id="uploadBtn" class="btn btn-primary mt-3" disabled>Upload</button>
             </div>
-            
+            <div id="loader" class="loader"></div>
+
             <!-- Custom Path and File Name inputs -->
             <div id="customInputsContainer" class="mt-4" style="display: none;">
-                <div class="form-group">
-                    <label for="customPath">Custom Path:</label>
-                    <input type="text" id="customPath" class="form-control" placeholder="Enter custom path for saving the file">
-                </div>
-                <div class="form-group">
-                    <label for="customFileName">Custom File Name:</label>
-                    <input type="text" id="customFileName" class="form-control" placeholder="Enter custom file name without extension">
-                </div>
                 <div class="text-center">
                     <button id="encryptBtn" class="btn btn-success mt-3">Encrypt</button>
                     <button id="decryptBtn" class="btn btn-warning mt-3">Decrypt</button>
@@ -75,16 +69,20 @@ $(document).ready(function() {
     });
 
     $('#uploadBtn').click(function() {
-        var formData = new FormData();
-        formData.append('file', $('#fileInput')[0].files[0]);
+    // Show loader
+    $('#loader').show();
 
-        $.ajax({
-            url: '{{ route('upload') }}',
-            type: 'POST',
-            data: formData,
-            contentType: false,
-            processData: false,
-            success: function(response) {
+    var formData = new FormData();
+    formData.append('file', $('#fileInput')[0].files[0]);
+
+    $.ajax({
+        url: '{{ route('upload') }}',
+        type: 'POST',
+        data: formData,
+        contentType: false,
+        processData: false,
+        success: function(response) {
+            $('#loader').hide();
                 var fileSizeMB = (response.size / (1024 * 1024)).toFixed(2); // Convert to MB
                 var fileSizeGB = (response.size / (1024 * 1024 * 1024)).toFixed(2); // Convert to GB
 
@@ -106,12 +104,14 @@ $(document).ready(function() {
                 Swal.fire("Upload successful", `File uploaded successfully: ${response.name}`, "success");
             },
             error: function(xhr, status, error) {
+                $('#loader').hide();
                 Swal.fire("Upload failed", `Status: ${status}, Error: ${error}`, "error");
             }
         });
     });
 
     $('#encryptBtn').click(function() {
+        $('#loader').show();
         var filePath = $(this).data('path');
         var customPath = $('#customPath').val();
         var customFileName = $('#customFileName').val();
@@ -127,15 +127,18 @@ $(document).ready(function() {
                 file_extension: fileExtension
             },
             success: function(response) {
+                $('#loader').hide();
                 Swal.fire("Encryption successful", `Encrypted file saved at: ${response.encrypted_path}`, "success");
             },
             error: function(xhr, status, error) {
+                $('#loader').hide();
                 Swal.fire("Encryption failed", `${xhr.responseText}`, "error");
             }
         });
     });
 
     $('#decryptBtn').click(function() {
+        $('#loader').show();
         var filePath = $(this).data('path');
         var customPath = $('#customPath').val();
         var customFileName = $('#customFileName').val();
@@ -151,9 +154,11 @@ $(document).ready(function() {
                 file_extension: fileExtension
             },
             success: function(response) {
+                $('#loader').hide();
                 Swal.fire("Decryption successful", `Decrypted file saved at: ${response.decrypted_path}`, "success");
             },
             error: function(xhr, status, error) {
+                $('#loader').hide();
                 Swal.fire("Decryption failed", `${xhr.responseText}`, "error");
             }
         });

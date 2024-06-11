@@ -39,11 +39,11 @@ class FileController extends Controller
     {
         try {
             $filePath = $request->input('file_path');
-            $customPath = $request->input('custom_path') ?: 'encrypted';
-            $customFileName = $request->input('custom_file_name');
+            // $customPath = $request->input('custom_path') ?: 'encrypted';
+            // $customFileName = $request->input('custom_file_name');
             $fileExtension = $request->input('file_extension');
 
-            $encryptedPath = $this->encryptionService->encryptFile($filePath, $customPath, $customFileName, $fileExtension);
+            $encryptedPath = $this->encryptionService->encryptFile($filePath, $fileExtension);
 
             return response()->json(['encrypted_path' => $encryptedPath]);
         } catch (Exception $e) {
@@ -55,11 +55,11 @@ class FileController extends Controller
     {
         try {
             $filePath = $request->input('file_path');
-            $customPath = $request->input('custom_path') ?: 'decrypted';
-            $customFileName = $request->input('custom_file_name');
+           // $customPath = $request->input('custom_path') ?: 'decrypted';
+            //$customFileName = $request->input('custom_file_name');
             $fileExtension = $request->input('file_extension');
 
-            $decryptedPath = $this->encryptionService->decryptFile($filePath, $customPath, $customFileName, $fileExtension);
+            $decryptedPath = $this->encryptionService->decryptFile($filePath, $fileExtension);
 
             return response()->json(['decrypted_path' => $decryptedPath]);
         } catch (Exception $e) {

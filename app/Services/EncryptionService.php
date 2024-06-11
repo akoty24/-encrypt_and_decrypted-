@@ -9,17 +9,16 @@ class EncryptionService
 {
     private $encryptionKey = 'your256bitkeyyour256bitkeyyour256bitkey12'; // 32 characters for 256-bit key
 
-    public function encryptFile($filePath, $customPath, $customFileName, $fileExtension)
+    public function encryptFile($filePath,  $fileExtension)
     {
         if (empty($filePath)) {
             throw new Exception('File path is missing.');
         }
 
-        if (!$customFileName) {
-            throw new Exception('Custom file name is missing.');
-        }
-
-        $encryptedFileName = $customFileName . '.' . $fileExtension;
+  
+        $encryptedFileName =  'encryptedFile'. time() .'.' . $fileExtension;
+        ////////////////////
+        /// 
         $fileContent = Storage::get($filePath);
 
         if ($fileContent === false) {
@@ -34,41 +33,41 @@ class EncryptionService
         }
 
         $encryptedContent = base64_encode($iv . $encryptedContent);
-        $encryptedPath = $customPath . '/' . $encryptedFileName;
+        $encryptedPath = 'en' . '/' . $encryptedFileName;
         Storage::put($encryptedPath, $encryptedContent);
 
         return $encryptedPath;
     }
 
-    public function decryptFile($filePath, $customPath, $customFileName, $fileExtension)
+    public function decryptFile($filePath,$fileExtension)
     {
         if (empty($filePath)) {
             throw new Exception('File path is missing.');
         }
-
-        if (!$customFileName) {
-            throw new Exception('Custom file name is missing.');
-        }
-
-        $decryptedFileName = $customFileName . '.' . $fileExtension;
         $encryptedContent = Storage::get($filePath);
+
+
+        $decryptedFileName = 'decryptedFile' . time() .'.' . $fileExtension;
 
         if ($encryptedContent === false) {
             throw new Exception('Encrypted file content could not be retrieved.');
         }
 
-        $encryptedContent = base64_decode($encryptedContent);
-        $iv = substr($encryptedContent, 0, 16);
-        $encryptedData = substr($encryptedContent, 16);
-        $decryptedContent = openssl_decrypt($encryptedData, 'aes-256-cbc', $this->encryptionKey, 0, $iv);
+        $ivCipherText = base64_decode($encryptedContent);
+        $ivLength = openssl_cipher_iv_length('aes-256-cbc');
+        $iv = substr($ivCipherText, 0, $ivLength);
+        $cipherText = substr($ivCipherText, $ivLength);
+        
+        $decrypted = openssl_decrypt($cipherText, 'aes-256-cbc', $this->encryptionKey, 0, $iv);
+//        $decryptedContent = openssl_decrypt($encryptedData, 'aes-256-cbc', $this->encryptionKey, 0, $iv);
 
-        if ($decryptedContent === false) {
+        if ($decrypted === false) {
             throw new Exception('Decryption failed due to an unknown error.');
         }
 
-        $decryptedPath = $customPath . '/' . $decryptedFileName;
-        Storage::put($decryptedPath, $decryptedContent);
+        $decryptedFileName = 'decrypted_' . time() . '.pdf';
+        Storage::put('decrypted/' . $decryptedFileName, $decrypted);
 
-        return $decryptedPath;
+        return $decryptedFileName;
     }
 }
