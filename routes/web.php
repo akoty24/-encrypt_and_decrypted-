@@ -19,4 +19,4 @@ Route::get('/', [FileController::class, 'index'])->name('index');
 Route::post('upload', [FileController::class, 'upload'])->name('upload');
 Route::post('encrypt', [FileController::class, 'encrypt'])->name('encrypt');
 Route::post('decrypt', [FileController::class, 'decrypt'])->name('decrypt');
-Route::get('/download/{filename}', 'FileController@downloadFile')->name('download');
+Route::get('/download/{filePath}', 'App\Http\Controllers\FileController@download')->name('download');

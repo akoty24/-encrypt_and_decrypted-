@@ -2,72 +2,91 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Storage;
 use Exception;
+use Illuminate\Support\Facades\File;
 
 class EncryptionService
 {
-    private $encryptionKey = 'your256bitkeyyour256bitkeyyour256bitkey12'; // 32 characters for 256-bit key
+    private $encryptionKey;
 
-    public function encryptFile($filePath,  $fileExtension)
+    public function __construct()
     {
-        if (empty($filePath)) {
-            throw new Exception('File path is missing.');
-        }
-
-  
-        $encryptedFileName =  'encryptedFile'. time() .'.' . $fileExtension;
-        ////////////////////
-        /// 
-        $fileContent = Storage::get($filePath);
-
-        if ($fileContent === false) {
-            throw new Exception('File content could not be retrieved.');
-        }
-
-        $iv = openssl_random_pseudo_bytes(16);
-        $encryptedContent = openssl_encrypt($fileContent, 'aes-256-cbc', $this->encryptionKey, 0, $iv);
-
-        if ($encryptedContent === false) {
-            throw new Exception('Encryption failed due to an unknown error.');
-        }
-
-        $encryptedContent = base64_encode($iv . $encryptedContent);
-        $encryptedPath = 'en' . '/' . $encryptedFileName;
-        Storage::put($encryptedPath, $encryptedContent);
-
-        return $encryptedPath;
+        $this->encryptionKey = 'your256bitkeyyour256bitkeyyour256bitkey12'; // 32 characters for 256-bit key
     }
 
-    public function decryptFile($filePath,$fileExtension)
+    public function uploadFile($file, $chunkNumber, $chunkSize, $totalSize, $identifier, $filename, $totalChunks)
     {
-        if (empty($filePath)) {
-            throw new Exception('File path is missing.');
+        $chunkDir = storage_path('app/chunks');
+        if (!is_dir($chunkDir)) {
+            mkdir($chunkDir, 0777, true);
         }
-        $encryptedContent = Storage::get($filePath);
+        $chunkFile = $chunkDir . '/' . $identifier . '.part' . $chunkNumber;
 
+        $file->move($chunkDir, $chunkFile);
 
-        $decryptedFileName = 'decryptedFile' . time() .'.' . $fileExtension;
+        $chunkFiles = glob($chunkDir . '/' . $identifier . '.part*');
+        if (count($chunkFiles) == $totalChunks) {
+            $finalPath = storage_path('app/uploads') . '/' . $filename;
+            $final = fopen($finalPath, 'w');
+            for ($i = 1; $i <= $totalChunks; $i++) {
+                $part = fopen($chunkDir . '/' . $identifier . '.part' . $i, 'r');
+                stream_copy_to_stream($part, $final);
+                fclose($part);
+            }
+            fclose($final);
+            array_map('unlink', $chunkFiles);
 
-        if ($encryptedContent === false) {
-            throw new Exception('Encrypted file content could not be retrieved.');
+            return [
+                'name' => $filename,
+                'size' => $totalSize,
+                'extension' => pathinfo($filename, PATHINFO_EXTENSION),
+                'path' => $finalPath
+            ];
         }
 
-        $ivCipherText = base64_decode($encryptedContent);
-        $ivLength = openssl_cipher_iv_length('aes-256-cbc');
-        $iv = substr($ivCipherText, 0, $ivLength);
-        $cipherText = substr($ivCipherText, $ivLength);
-        
-        $decrypted = openssl_decrypt($cipherText, 'aes-256-cbc', $this->encryptionKey, 0, $iv);
-//        $decryptedContent = openssl_decrypt($encryptedData, 'aes-256-cbc', $this->encryptionKey, 0, $iv);
+        return 'chunk uploaded';
+    }
 
-        if ($decrypted === false) {
-            throw new Exception('Decryption failed due to an unknown error.');
+    public function encryptFile($filePath)
+    {
+        $fileName = pathinfo($filePath, PATHINFO_FILENAME);
+        $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+        $encryptedFilePath = storage_path('app/encrypted/' . $fileName . '.' . $fileExtension);
+
+        try {
+            $data = File::get($filePath);
+            $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
+            $encrypted = openssl_encrypt($data, 'aes-256-cbc', $this->encryptionKey, 0, $iv);
+            $encryptedData = base64_encode($iv . $encrypted);
+
+            File::put($encryptedFilePath, $encryptedData);
+
+            return ['message' => 'File encrypted successfully', 'path' => $encryptedFilePath];
+        } catch (Exception $e) {
+            throw new Exception('File encryption failed: ' . $e->getMessage());
         }
+    }
 
-        $decryptedFileName = 'decrypted_' . time() .'.' . $fileExtension;
-        Storage::put('decrypted/' . $decryptedFileName, $decrypted);
+    public function decryptFile($filePath)
+    {
+        $fileName = pathinfo($filePath, PATHINFO_FILENAME);
+        $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+        $decryptedFilePath = storage_path('app/decrypted/' . $fileName . '.' . $fileExtension);
 
-        return $decryptedFileName;
+        try {
+            $data = File::get($filePath);
+            $data = base64_decode($data);
+            $ivLength = openssl_cipher_iv_length('aes-256-cbc');
+            $iv = substr($data, 0, $ivLength);
+            $encryptedData = substr($data, $ivLength);
+
+            $decrypted = openssl_decrypt($encryptedData, 'aes-256-cbc', $this->encryptionKey, 0, $iv);
+
+            File::put($decryptedFilePath, $decrypted);
+
+            return ['message' => 'File decrypted successfully', 'path' => $decryptedFilePath];
+        } catch (Exception $e) {
+            throw new Exception('File decryption failed: ' . $e->getMessage());
+        }
     }
 }

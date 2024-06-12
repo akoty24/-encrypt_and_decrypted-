@@ -4,9 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Services\EncryptionService;
-use App\Http\Requests\EncryptFileRequest;
-use App\Http\Requests\DecryptFileRequest;
 use Exception;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\File;
 
 class FileController extends Controller
 {
@@ -25,45 +26,53 @@ class FileController extends Controller
     public function upload(Request $request)
     {
         $file = $request->file('file');
-        $path = $file->storeAs('uploads', $file->getClientOriginalName());
+        $chunkNumber = $request->input('resumableChunkNumber');
+        $chunkSize = $request->input('resumableChunkSize');
+        $totalSize = $request->input('resumableTotalSize');
+        $identifier = $request->input('resumableIdentifier');
+        $filename = $request->input('resumableFilename');
+        $totalChunks = $request->input('resumableTotalChunks');
 
-        return response()->json([
-            'name' => $file->getClientOriginalName(),
-            'size' => $file->getSize(),
-            'extension' => $file->getClientOriginalExtension(),
-            'path' => $path,
-        ]);
-    }
-
-    public function encrypt(EncryptFileRequest $request)
-    {
         try {
-            $filePath = $request->input('file_path');
-            // $customPath = $request->input('custom_path') ?: 'encrypted';
-            // $customFileName = $request->input('custom_file_name');
-            $fileExtension = $request->input('file_extension');
-
-            $encryptedPath = $this->encryptionService->encryptFile($filePath, $fileExtension);
-
-            return response()->json(['encrypted_path' => $encryptedPath]);
+            $result = $this->encryptionService->uploadFile($file, $chunkNumber, $chunkSize, $totalSize, $identifier, $filename, $totalChunks);
+            return response()->json($result);
         } catch (Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['message' => 'File upload failed', 'error' => $e->getMessage()], 500);
         }
     }
 
-    public function decrypt(DecryptFileRequest $request)
+    public function encrypt(Request $request)
     {
+        $filePath = $request->input('path');
+
         try {
-            $filePath = $request->input('file_path');
-           // $customPath = $request->input('custom_path') ?: 'decrypted';
-            //$customFileName = $request->input('custom_file_name');
-            $fileExtension = $request->input('file_extension');
-
-            $decryptedPath = $this->encryptionService->decryptFile($filePath, $fileExtension);
-
-            return response()->json(['decrypted_path' => $decryptedPath]);
+            $result = $this->encryptionService->encryptFile($filePath);
+            
+            return response()->json($result);
         } catch (Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['message' => 'File encryption failed', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function decrypt(Request $request)
+    {
+        $filePath = $request->input('path');
+
+        try {
+            $result = $this->encryptionService->decryptFile($filePath);
+            return response()->json($result);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'File decryption failed', 'error' => $e->getMessage()], 500);
+        }
+    }
+        public function download($filePath)
+    {
+        $file = storage_path('app/' . $filePath);
+
+        if (file_exists($file)) {
+            return Response::download($file);
+        } else {
+            abort(404, 'File not found');
         }
     }
 }
