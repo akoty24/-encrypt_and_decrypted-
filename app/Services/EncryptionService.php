@@ -65,7 +65,7 @@ class EncryptionService
             throw new Exception('Decryption failed due to an unknown error.');
         }
 
-        $decryptedFileName = 'decrypted_' . time() . '.pdf';
+        $decryptedFileName = 'decrypted_' . time() .'.' . $fileExtension;
         Storage::put('decrypted/' . $decryptedFileName, $decrypted);
 
         return $decryptedFileName;

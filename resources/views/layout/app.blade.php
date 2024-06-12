@@ -16,7 +16,7 @@
     color: white;
 }
 .card-background {
-    background: url('{{ asset('enp_20231017-encryption-types.webp') }}') no-repeat center center ;
+    background: url('{{ asset('5.jpg') }}') no-repeat center center ;
     background-size: cover;
     color: white;
 }
