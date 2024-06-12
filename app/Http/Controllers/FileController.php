@@ -47,7 +47,7 @@ class FileController extends Controller
 
         try {
             $result = $this->encryptionService->encryptFile($filePath);
-            
+
             return response()->json($result);
         } catch (Exception $e) {
             return response()->json(['message' => 'File encryption failed', 'error' => $e->getMessage()], 500);
@@ -60,19 +60,29 @@ class FileController extends Controller
 
         try {
             $result = $this->encryptionService->decryptFile($filePath);
+        
             return response()->json($result);
         } catch (Exception $e) {
             return response()->json(['message' => 'File decryption failed', 'error' => $e->getMessage()], 500);
         }
     }
-        public function download($filePath)
+      public function downloadEncrypted($filename)
     {
-        $file = storage_path('app/' . $filePath);
-
-        if (file_exists($file)) {
-            return Response::download($file);
-        } else {
-            abort(404, 'File not found');
+        $path = storage_path('app/encrypted/' . $filename);
+        if (!file_exists($path)) {
+            abort(404);
         }
+
+        return response()->download($path);
     }
+    public function downloadDecrypted($filename)
+    {
+        $path = storage_path('app/decrypted/' . $filename);
+        if (!file_exists($path)) {
+            abort(404);
+        }
+
+        return response()->download($path);
+    }
+    
 }

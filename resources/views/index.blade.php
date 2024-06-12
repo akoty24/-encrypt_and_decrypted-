@@ -103,44 +103,65 @@
             r.upload();
         });
 
-        $('#encryptBtn').click(function() {
-            var filePath = $(this).data('path');
-            $('.progress').show(); // Show the progress bar for encryption
-            $.post('{{ route('encrypt') }}', { path: filePath })
-            .done(function(response) {
-                $('.progress').hide();
-                Swal.fire("Encryption successful", 'File encrypted successfully:' + response.path, "success");
-            })
-            .fail(function(error) {
-                $('.progress').hide();
-                Swal.fire("Encryption failed", error.responseJSON.message, "error");
-            })
-            .always(function() {
-                $('.progress').hide(); // Hide the progress bar after encryption is complete
-            });
-        });
 
-        $('#decryptBtn').click(function() {
-            var filePath = $(this).data('path');
-            $('.progress').show(); // Show the progress bar for decryption
-            $.post('{{ route('decrypt') }}', { path: filePath })
-            .done(function(response) {
-                $('.progress').hide();
-                Swal.fire("Decryption successful", `File decrypted successfully: ${response.path}`, "success");
 
-            })
-            .fail(function(error) {
-                $('.progress').hide();
-                Swal.fire("Decryption failed", error.responseJSON.message, "error");
-            })
-            .always(function() {
-                $('.progress').hide(); // Hide the progress bar after decryption is complete
-            });
-        });
+       $('#encryptBtn').on('click', function() {
+    var filePath = $(this).data('path');
+    $('.progress').show(); // Show the progress bar for encryption
 
-        function downloadFile(filePath) {
-            window.location.href = '/download/' + filePath;
+    $.ajax({
+        url: '{{ route('encrypt') }}',
+        type: 'POST',
+        data: {
+            path: filePath,
+            _token: $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            $('.progress').hide(); // Hide the progress bar
+
+            if (response.status === 'success') {
+                // Redirect to download route with the encrypted filename
+                window.location.href = '{{ route('download.encrypted', ':filename') }}'.replace(':filename', response.filename);
+            } else {
+                alert('Encryption failed!');
+            }
+        },
+        error: function(xhr, status, error) {
+            $('.progress').hide(); // Hide the progress bar
+            alert('Encryption failed! Please check your network connection and try again.');
+            console.error(xhr.responseText); // Log the detailed error for debugging
         }
+    });
+});
+$('#decryptBtn').on('click', function() {
+    var filePath = $(this).data('path');
+    $('.progress').show(); // Show the progress bar for decryption
+
+    $.ajax({
+        url: '{{ route('decrypt') }}',
+        type: 'POST',
+        data: {
+            path: filePath,
+            _token: $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            $('.progress').hide(); // Hide the progress bar
+
+            if (response.status === 'success') {
+                // Redirect to download route with the encrypted filename
+                window.location.href = '{{ route('download.decrypted', ':filename') }}'.replace(':filename', response.filename);
+            } else {
+                alert('Decryption failed!');
+            }
+        },
+        error: function(xhr, status, error) {
+            $('.progress').hide(); // Hide the progress bar
+            alert('Decryption failed! Please check your network connection and try again.');
+            console.error(xhr.responseText); // Log the detailed error for debugging
+        }
+    });
+});
+
     });
 
 </script>

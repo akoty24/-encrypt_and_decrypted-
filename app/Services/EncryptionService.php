@@ -61,32 +61,39 @@ class EncryptionService
 
             File::put($encryptedFilePath, $encryptedData);
 
-            return ['message' => 'File encrypted successfully', 'path' => $encryptedFilePath];
+            return ['status' => 'success', 'message' => 'File encrypted successfully', 'filename' => $fileName . '.' . $fileExtension];
         } catch (Exception $e) {
             throw new Exception('File encryption failed: ' . $e->getMessage());
         }
     }
 
-    public function decryptFile($filePath)
-    {
-        $fileName = pathinfo($filePath, PATHINFO_FILENAME);
-        $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
-        $decryptedFilePath = storage_path('app/decrypted/' . $fileName . '.' . $fileExtension);
-
-        try {
-            $data = File::get($filePath);
-            $data = base64_decode($data);
-            $ivLength = openssl_cipher_iv_length('aes-256-cbc');
-            $iv = substr($data, 0, $ivLength);
-            $encryptedData = substr($data, $ivLength);
-
-            $decrypted = openssl_decrypt($encryptedData, 'aes-256-cbc', $this->encryptionKey, 0, $iv);
-
-            File::put($decryptedFilePath, $decrypted);
-
-            return ['message' => 'File decrypted successfully', 'path' => $decryptedFilePath];
-        } catch (Exception $e) {
-            throw new Exception('File decryption failed: ' . $e->getMessage());
-        }
-    }
+        public function decryptFile($filePath)
+        {
+            $fileName = pathinfo($filePath, PATHINFO_FILENAME);
+            $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+            $decryptedFilePath = storage_path('app/decrypted/' . $fileName . '.' . $fileExtension);
+        
+            try {
+                // Read the encrypted file content
+                $encryptedData = File::get($filePath);
+                
+                // Base64 decode to get IV and encrypted data
+                $data = base64_decode($encryptedData);
+                
+                // Extract IV and encrypted data
+                $ivLength = openssl_cipher_iv_length('aes-256-cbc');
+                $iv = substr($data, 0, $ivLength);
+                $encryptedData = substr($data, $ivLength);
+        
+                // Decrypt using openssl_decrypt
+                $decrypted = openssl_decrypt($encryptedData, 'aes-256-cbc', $this->encryptionKey, 0, $iv);
+        
+                // Write decrypted data to file
+                File::put($decryptedFilePath, $decrypted);
+        
+                return ['status' => 'success', 'message' => 'File decrypted successfully', 'filename' => $fileName . '.' . $fileExtension];
+            } catch (Exception $e) {
+                throw new Exception('File decryption failed: ' . $e->getMessage());
+            }
+        }        
 }
