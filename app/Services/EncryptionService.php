@@ -52,48 +52,62 @@ class EncryptionService
         $fileName = pathinfo($filePath, PATHINFO_FILENAME);
         $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
         $encryptedFilePath = storage_path('app/encrypted/' . $fileName . '.' . $fileExtension);
-
+        
         try {
-            $data = File::get($filePath);
+            // Open input and output file pointers
+            $input = fopen($filePath, 'rb');
+            $output = fopen($encryptedFilePath, 'wb');
+        
+            // Generate IV
             $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
-            $encrypted = openssl_encrypt($data, 'aes-256-cbc', $this->encryptionKey, 0, $iv);
-            $encryptedData = base64_encode($iv . $encrypted);
-
-            File::put($encryptedFilePath, $encryptedData);
-
+            fwrite($output, $iv, strlen($iv));
+        
+            // Encrypt block by block
+            while (!feof($input)) {
+                $block = fread($input, 4096); // Adjust block size as needed
+                $encryptedBlock = openssl_encrypt($block, 'aes-256-cbc', $this->encryptionKey, OPENSSL_RAW_DATA, $iv);
+                fwrite($output, $encryptedBlock, strlen($encryptedBlock));
+            }
+        
+            fclose($input);
+            fclose($output);
+        
             return ['status' => 'success', 'message' => 'File encrypted successfully', 'filename' => $fileName . '.' . $fileExtension];
         } catch (Exception $e) {
             throw new Exception('File encryption failed: ' . $e->getMessage());
         }
     }
-
-        public function decryptFile($filePath)
-        {
-            $fileName = pathinfo($filePath, PATHINFO_FILENAME);
-            $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
-            $decryptedFilePath = storage_path('app/decrypted/' . $fileName . '.' . $fileExtension);
+    
+    
+    public function decryptFile($filePath)
+    {
+        $fileName = pathinfo($filePath, PATHINFO_FILENAME);
+        $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+        $decryptedFilePath = storage_path('app/decrypted/' . $fileName . '.' . $fileExtension);
         
-            try {
-                // Read the encrypted file content
-                $encryptedData = File::get($filePath);
-                
-                // Base64 decode to get IV and encrypted data
-                $data = base64_decode($encryptedData);
-                
-                // Extract IV and encrypted data
-                $ivLength = openssl_cipher_iv_length('aes-256-cbc');
-                $iv = substr($data, 0, $ivLength);
-                $encryptedData = substr($data, $ivLength);
+        try {
+            // Open input and output file pointers
+            $input = fopen($filePath, 'rb');
+            $output = fopen($decryptedFilePath, 'wb');
         
-                // Decrypt using openssl_decrypt
-                $decrypted = openssl_decrypt($encryptedData, 'aes-256-cbc', $this->encryptionKey, 0, $iv);
+            // Read IV from the beginning of the file
+            $iv = fread($input, openssl_cipher_iv_length('aes-256-cbc'));
         
-                // Write decrypted data to file
-                File::put($decryptedFilePath, $decrypted);
-        
-                return ['status' => 'success', 'message' => 'File decrypted successfully', 'filename' => $fileName . '.' . $fileExtension];
-            } catch (Exception $e) {
-                throw new Exception('File decryption failed: ' . $e->getMessage());
+            // Decrypt block by block
+            while (!feof($input)) {
+                $block = fread($input, 4096 + openssl_cipher_iv_length('aes-256-cbc')); // Adjust block size as needed
+                $decryptedBlock = openssl_decrypt($block, 'aes-256-cbc', $this->encryptionKey, OPENSSL_RAW_DATA, $iv);
+                fwrite($output, $decryptedBlock);
             }
-        }        
+        
+            fclose($input);
+            fclose($output);
+        
+            return ['status' => 'success', 'message' => 'File decrypted successfully', 'filename' => $fileName . '.' . $fileExtension];
+        } catch (Exception $e) {
+            throw new Exception('File decryption failed: ' . $e->getMessage());
+        }
+    }
+    
+          
 }
