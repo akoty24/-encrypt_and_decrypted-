@@ -26,7 +26,14 @@ class EncryptionService
 
         $chunkFiles = glob($chunkDir . '/' . $identifier . '.part*');
         if (count($chunkFiles) == $totalChunks) {
-            $finalPath = storage_path('app/uploads') . '/' . $filename;
+
+            $uploudsDir=storage_path('app/uploads');
+            $finalPath =  $uploudsDir . '/' . $filename;
+
+            if (!is_dir($uploudsDir)){
+                mkdir($uploudsDir,0777,true);
+            }
+
             $final = fopen($finalPath, 'w');
             for ($i = 1; $i <= $totalChunks; $i++) {
                 $part = fopen($chunkDir . '/' . $identifier . '.part' . $i, 'r');
@@ -51,8 +58,11 @@ class EncryptionService
     {
         $fileName = pathinfo($filePath, PATHINFO_FILENAME);
         $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
-        $encryptedFilePath = storage_path('app/encrypted/' . $fileName . '.' . $fileExtension);
-        
+        $encryptedDir=storage_path('app/encrypted');
+        $encryptedFilePath = $encryptedDir.'/' . $fileName . '.' . $fileExtension;
+        if (!is_dir($encryptedDir)){
+            mkdir($encryptedDir,0777,true);
+        }
         try {
             // Open input and output file pointers
             $input = fopen($filePath, 'rb');
@@ -83,8 +93,12 @@ class EncryptionService
     {
         $fileName = pathinfo($filePath, PATHINFO_FILENAME);
         $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
-        $decryptedFilePath = storage_path('app/decrypted/' . $fileName . '.' . $fileExtension);
-        
+        $decryptedDir=storage_path('app/decrypted');
+        $decryptedFilePath = $decryptedDir.'/' . $fileName . '.' . $fileExtension;
+        if (!is_dir($decryptedDir)){
+            mkdir($decryptedDir,0777,true);
+        }
+
         try {
             // Open input and output file pointers
             $input = fopen($filePath, 'rb');
